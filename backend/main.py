@@ -43,14 +43,17 @@ class Availability(BaseModel):
 def register(username: str = Form(...), password: str = Form(...),
              description: str = Form(...), photo: UploadFile = File(...)):
     hashed_pw = hashlib.sha256(password.encode()).hexdigest()
-    photo_path = os.path.join(UPLOAD_DIR, photo.filename)
+    filename = photo.filename
+    # ensure unique filename to avoid collisions
+    safe_name = f"{username}_{filename}"
+    photo_path = os.path.join(UPLOAD_DIR, safe_name)
     with open(photo_path, "wb") as buffer:
         shutil.copyfileobj(photo.file, buffer)
 
     with sqlite3.connect(DB_NAME) as conn:
         cur = conn.cursor()
         cur.execute("INSERT INTO users (username, password, photo, description) VALUES (?, ?, ?, ?)",
-                    (username, hashed_pw, f"/uploads/{photo.filename}", description[:250]))
+                    (username, hashed_pw, f"/uploads/{safe_name}", description[:250]))
         conn.commit()
     return {"status": "registered"}
 
@@ -70,7 +73,7 @@ def login(username: str = Form(...), password: str = Form(...)):
 def get_all_availability():
     with sqlite3.connect(DB_NAME) as conn:
         cur = conn.cursor()
-        cur.execute("SELECT name, city, day, start_time, end_time FROM availability")
+        cur.execute("SELECT name, city, day, start_time, end_time FROM availability ORDER BY day")
         rows = cur.fetchall()
     return {"availability": rows}
 
@@ -92,7 +95,7 @@ def add_availability(avail: Availability):
 def get_availability(person_id: int):
     with sqlite3.connect(DB_NAME) as conn:
         cur = conn.cursor()
-        cur.execute("SELECT day, start_time, end_time FROM availability WHERE person_id=?", (person_id,))
+        cur.execute("SELECT day, start_time, end_time FROM availability WHERE person_id=? ORDER BY day", (person_id,))
         rows = cur.fetchall()
     return {"availability": rows}
 
@@ -100,7 +103,7 @@ def get_availability(person_id: int):
 def get_history(person_id: int):
     with sqlite3.connect(DB_NAME) as conn:
         cur = conn.cursor()
-        cur.execute("SELECT action FROM history WHERE person_id=?", (person_id,))
+        cur.execute("SELECT action FROM history WHERE person_id=? ORDER BY rowid DESC", (person_id,))
         rows = cur.fetchall()
     return {"history": rows}
 

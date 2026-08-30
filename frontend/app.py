@@ -11,12 +11,13 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
         resp = requests.post(f"{BACKEND_URL}/login", data={"username": username, "password": password}).json()
-        if resp["status"] == "success":
+        if resp.get("status") == "success":
             session["person_id"] = resp["person_id"]
+            session["username"] = username
             return redirect(url_for("home"))
         else:
-            return "Login failed. <a href='/login'>Try again</a>"
-    return render_template("login.html")
+            return render_template("login.html", error="Login failed. Check credentials.")
+    return render_template("login.html", error=None)
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -27,7 +28,7 @@ def register():
         photo = request.files["photo"]
         files = {"photo": (photo.filename, photo.stream, photo.mimetype)}
         data = {"username": username, "password": password, "description": description}
-        requests.post(f"{BACKEND_URL}/register", data=data, files=files)
+        resp = requests.post(f"{BACKEND_URL}/register", data=data, files=files)
         return redirect(url_for("login"))
     return render_template("register.html")
 
@@ -58,6 +59,8 @@ def home():
 
 @app.route("/add_availability", methods=["POST"])
 def add_availability():
+    if "person_id" not in session:
+        return redirect(url_for("login"))
     person_id = session["person_id"]
     data = {
         "person_id": person_id,
@@ -71,3 +74,4 @@ def add_availability():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+

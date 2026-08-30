@@ -3,20 +3,26 @@
 <head>
     <title>Login</title>
     <style>
-        body { font-family: Arial; background: #f9f9f9; text-align: center; margin-top: 50px; }
-        form { display: inline-block; background: white; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
-        input { margin: 5px; padding: 8px; width: 90%; }
-        input[type="submit"] { background: #007BFF; color: white; border: none; cursor: pointer; }
-        input[type="submit"]:hover { background: #0056b3; }
+        body { font-family: Arial; background: #f4f6f8; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .box { width: 360px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        input { width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; }
+        input[type="submit"] { background: #0d6efd; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; }
+        .link { text-align: center; margin-top: 10px; }
+        .error { color: red; text-align: center; }
     </style>
 </head>
 <body>
-    <h2>Login</h2>
-    <form method="POST">
-        <input type="text" name="username" placeholder="Username"><br>
-        <input type="password" name="password" placeholder="Password"><br>
-        <input type="submit" value="Login">
-    </form>
-    <p><a href="/register">Register</a></p>
+    <div class="box">
+        <h2 style="text-align:center">Login</h2>
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+        <form method="POST">
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <input type="submit" value="Login">
+        </form>
+        <div class="link"><a href="/register">Create an account</a></div>
+    </div>
 </body>
 </html>

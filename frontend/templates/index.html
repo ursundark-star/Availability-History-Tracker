@@ -3,67 +3,86 @@
 <head>
     <title>Availability & History Tracker</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h2 { color: #333; }
-        table { border-collapse: collapse; width: 80%; margin-bottom: 20px; }
-        table, th, td { border: 1px solid #ccc; }
-        th, td { padding: 8px; text-align: center; }
-        .profile { margin-top: 20px; }
-        .profile img { border-radius: 8px; margin-bottom: 10px; }
-        .buttons { margin-bottom: 20px; }
-        .buttons a { margin-right: 10px; text-decoration: none; padding: 6px 12px; background: #007BFF; color: white; border-radius: 4px; }
-        .buttons a:hover { background: #0056b3; }
+        body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f8; }
+        header { background: #0d6efd; color: white; padding: 18px; text-align: center; }
+        header h1 { margin: 0; font-size: 22px; }
+        .nav { text-align: center; margin: 14px 0; }
+        .nav a { margin: 0 8px; text-decoration: none; padding: 8px 14px; background: #0d6efd; color: white; border-radius: 6px; }
+        .container { width: 90%; max-width: 1000px; margin: 20px auto; }
+        .card { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 18px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: center; }
+        th { background: #f8f9fa; }
+        .profile { text-align: center; }
+        .profile img { border-radius: 8px; max-width: 150px; height: auto; display: block; margin: 0 auto 10px; }
+        form input, form textarea { width: 100%; padding: 8px; margin: 6px 0; box-sizing: border-box; }
+        form input[type="submit"] { width: auto; background: #0d6efd; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <h2>Availability & History Tracker</h2>
+    <header>
+        <h1>Availability & History Tracker</h1>
+    </header>
 
-    <div class="buttons">
+    <div class="nav">
         <a href="/register">Register</a>
         <a href="/login">Login</a>
         <a href="/logout">Logout</a>
     </div>
 
-    <h2>All Availability</h2>
-    <table>
-      <tr><th>Name</th><th>City</th><th>Day</th><th>Start</th><th>End</th></tr>
-      {% for a in all_availability %}
-        <tr><td>{{ a[0] }}</td><td>{{ a[1] }}</td><td>{{ a[2] }}</td><td>{{ a[3] }}</td><td>{{ a[4] }}</td></tr>
-      {% endfor %}
-    </table>
+    <div class="container">
+        <div class="card">
+            <h2>All Availability</h2>
+            <table>
+                <tr><th>Name</th><th>City</th><th>Day</th><th>Start</th><th>End</th></tr>
+                {% for a in all_availability %}
+                    <tr><td>{{ a[0] }}</td><td>{{ a[1] }}</td><td>{{ a[2] }}</td><td>{{ a[3] }}</td><td>{{ a[4] }}</td></tr>
+                {% endfor %}
+            </table>
+        </div>
 
-    {% if user %}
-      <div class="profile">
-        <h2>Your Profile</h2>
-        <p><b>{{ user[0] }}</b></p>
-        <img src="{{ user[1] }}" width="150">
-        <p>{{ user[2] }}</p>
-      </div>
+        {% if user %}
+            <div class="card profile">
+                <h2>Your Profile</h2>
+                <p><strong>{{ user[0] }}</strong></p>
+                <img src="{{ user[1] }}" alt="Profile photo">
+                <p>{{ user[2] }}</p>
+            </div>
 
-      <h2>Your Availability</h2>
-      <table>
-        <tr><th>Day</th><th>Start</th><th>End</th></tr>
-        {% for a in availability %}
-          <tr><td>{{ a[0] }}</td><td>{{ a[1] }}</td><td>{{ a[2] }}</td></tr>
-        {% endfor %}
-      </table>
+            <div class="card">
+                <h2>Your Availability</h2>
+                <table>
+                    <tr><th>Day</th><th>Start</th><th>End</th></tr>
+                    {% for a in availability %}
+                        <tr><td>{{ a[0] }}</td><td>{{ a[1] }}</td><td>{{ a[2] }}</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
 
-      <h2>Your History</h2>
-      <ul>
-        {% for h in history %}
-          <li>{{ h[0] }}</li>
-        {% endfor %}
-      </ul>
+            <div class="card">
+                <h2>Your History</h2>
+                <ul>
+                    {% for h in history %}
+                        <li>{{ h[0] }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
 
-      <h2>Add Availability</h2>
-      <form action="/add_availability" method="POST">
-          Name: <input type="text" name="name"><br>
-          City: <input type="text" name="city"><br>
-          Day: <input type="date" name="day"><br>
-          Start: <input type="time" name="start"><br>
-          End: <input type="time" name="end"><br>
-          <input type="submit" value="Save Availability">
-      </form>
-    {% endif %}
+            <div class="card">
+                <h2>Add Availability</h2>
+                <form action="/add_availability" method="POST">
+                    <label>City</label>
+                    <input type="text" name="city" required>
+                    <label>Day</label>
+                    <input type="date" name="day" required>
+                    <label>Start</label>
+                    <input type="time" name="start" required>
+                    <label>End</label>
+                    <input type="time" name="end" required>
+                    <input type="submit" value="Save Availability">
+                </form>
+            </div>
+        {% endif %}
+    </div>
 </body>
 </html>
