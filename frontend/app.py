@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import requests
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"  # for session management
+app.secret_key = "supersecretkey"
 BACKEND_URL = "http://backend:8000"
 
 @app.route("/login", methods=["GET", "POST"])
@@ -31,22 +31,36 @@ def register():
         return redirect(url_for("login"))
     return render_template("register.html")
 
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("home"))
+
 @app.route("/")
 def home():
-    if "person_id" not in session:
-        return redirect(url_for("login"))
-    person_id = session["person_id"]
-    user = requests.get(f"{BACKEND_URL}/user/{person_id}").json().get("user")
-    availability = requests.get(f"{BACKEND_URL}/availability/{person_id}").json()
-    history = requests.get(f"{BACKEND_URL}/history/{person_id}").json()
-    return render_template("index.html", user=user, availability=availability["availability"], history=history["history"])
+    all_availability = requests.get(f"{BACKEND_URL}/availability/all").json()
+    if "person_id" in session:
+        person_id = session["person_id"]
+        user = requests.get(f"{BACKEND_URL}/user/{person_id}").json().get("user")
+        availability = requests.get(f"{BACKEND_URL}/availability/{person_id}").json()
+        history = requests.get(f"{BACKEND_URL}/history/{person_id}").json()
+        return render_template("index.html", 
+                               user=user, 
+                               availability=availability["availability"], 
+                               history=history["history"], 
+                               all_availability=all_availability["availability"])
+    else:
+        return render_template("index.html", 
+                               user=None, 
+                               availability=[], 
+                               history=[], 
+                               all_availability=all_availability["availability"])
 
 @app.route("/add_availability", methods=["POST"])
 def add_availability():
     person_id = session["person_id"]
     data = {
         "person_id": person_id,
-        "name": request.form["name"],
         "city": request.form["city"],
         "day": request.form["day"],
         "start_time": request.form["start"],

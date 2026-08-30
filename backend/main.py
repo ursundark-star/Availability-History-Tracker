@@ -1,12 +1,16 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from pydantic import BaseModel
 import sqlite3, os, shutil, hashlib
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
 DB_NAME = "data.db"
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Serve uploaded images
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # Initialize DB
 def init_db():
@@ -30,7 +34,6 @@ init_db()
 
 class Availability(BaseModel):
     person_id: int
-    name: str
     city: str
     day: str
     start_time: str
@@ -47,7 +50,7 @@ def register(username: str = Form(...), password: str = Form(...),
     with sqlite3.connect(DB_NAME) as conn:
         cur = conn.cursor()
         cur.execute("INSERT INTO users (username, password, photo, description) VALUES (?, ?, ?, ?)",
-                    (username, hashed_pw, photo_path, description[:250]))
+                    (username, hashed_pw, f"/uploads/{photo.filename}", description[:250]))
         conn.commit()
     return {"status": "registered"}
 
@@ -63,25 +66,27 @@ def login(username: str = Form(...), password: str = Form(...)):
         return {"status": "success", "person_id": row[0], "photo": row[1], "description": row[2]}
     return {"status": "failed"}
 
+@app.get("/availability/all")
+def get_all_availability():
+    with sqlite3.connect(DB_NAME) as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT name, city, day, start_time, end_time FROM availability")
+        rows = cur.fetchall()
+    return {"availability": rows}
+
 @app.post("/availability")
 def add_availability(avail: Availability):
     with sqlite3.connect(DB_NAME) as conn:
         cur = conn.cursor()
+        # Get username for person_id
+        cur.execute("SELECT username FROM users WHERE person_id=?", (avail.person_id,))
+        user_row = cur.fetchone()
+        name = user_row[0] if user_row else "Unknown"
         cur.execute("INSERT INTO availability (person_id, name, city, day, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?)", 
-                    (avail.person_id, avail.name, avail.city, avail.day, avail.start_time, avail.end_time))
-        cur.execute("INSERT INTO history VALUES (?, ?)", (avail.person_id, f"{avail.name} added {avail.day} availability"))
+                    (avail.person_id, name, avail.city, avail.day, avail.start_time, avail.end_time))
+        cur.execute("INSERT INTO history VALUES (?, ?)", (avail.person_id, f"{name} added {avail.day} availability"))
         conn.commit()
     return {"status": "saved"}
-
-@app.put("/availability/{id}")
-def update_availability(id: int, avail: Availability):
-    with sqlite3.connect(DB_NAME) as conn:
-        cur = conn.cursor()
-        cur.execute("""UPDATE availability SET name=?, city=?, day=?, start_time=?, end_time=? WHERE id=?""",
-                    (avail.name, avail.city, avail.day, avail.start_time, avail.end_time, id))
-        cur.execute("INSERT INTO history VALUES (?, ?)", (avail.person_id, f"{avail.name} updated availability"))
-        conn.commit()
-    return {"status": "updated"}
 
 @app.get("/availability/{person_id}")
 def get_availability(person_id: int):

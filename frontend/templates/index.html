@@ -2,38 +2,68 @@
 <html>
 <head>
     <title>Availability & History Tracker</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h2 { color: #333; }
+        table { border-collapse: collapse; width: 80%; margin-bottom: 20px; }
+        table, th, td { border: 1px solid #ccc; }
+        th, td { padding: 8px; text-align: center; }
+        .profile { margin-top: 20px; }
+        .profile img { border-radius: 8px; margin-bottom: 10px; }
+        .buttons { margin-bottom: 20px; }
+        .buttons a { margin-right: 10px; text-decoration: none; padding: 6px 12px; background: #007BFF; color: white; border-radius: 4px; }
+        .buttons a:hover { background: #0056b3; }
+    </style>
 </head>
 <body>
-    <h2>Profile</h2>
+    <h2>Availability & History Tracker</h2>
+
+    <div class="buttons">
+        <a href="/register">Register</a>
+        <a href="/login">Login</a>
+        <a href="/logout">Logout</a>
+    </div>
+
+    <h2>All Availability</h2>
+    <table>
+      <tr><th>Name</th><th>City</th><th>Day</th><th>Start</th><th>End</th></tr>
+      {% for a in all_availability %}
+        <tr><td>{{ a[0] }}</td><td>{{ a[1] }}</td><td>{{ a[2] }}</td><td>{{ a[3] }}</td><td>{{ a[4] }}</td></tr>
+      {% endfor %}
+    </table>
+
     {% if user %}
+      <div class="profile">
+        <h2>Your Profile</h2>
         <p><b>{{ user[0] }}</b></p>
         <img src="{{ user[1] }}" width="150">
         <p>{{ user[2] }}</p>
-    {% endif %}
+      </div>
 
-    <h2>Add Availability</h2>
-    <form action="/add_availability" method="POST">
-        Name: <input type="text" name="name"><br>
-        City: <input type="text" name="city"><br>
-        Day: <input type="date" name="day"><br>
-        Start: <input type="time" name="start"><br>
-        End: <input type="time" name="end"><br>
-        <input type="submit" value="Save Availability">
-    </form>
-
-    <h2>Weekly Availability</h2>
-    <table border="1">
-        <tr><th>Day</th><th>Start Time</th><th>End Time</th></tr>
+      <h2>Your Availability</h2>
+      <table>
+        <tr><th>Day</th><th>Start</th><th>End</th></tr>
         {% for a in availability %}
-            <tr><td>{{ a[0] }}</td><td>{{ a[1] }}</td><td>{{ a[2] }}</td></tr>
+          <tr><td>{{ a[0] }}</td><td>{{ a[1] }}</td><td>{{ a[2] }}</td></tr>
         {% endfor %}
-    </table>
+      </table>
 
-    <h2>History Log</h2>
-    <ul>
+      <h2>Your History</h2>
+      <ul>
         {% for h in history %}
-            <li>{{ h[0] }}</li>
+          <li>{{ h[0] }}</li>
         {% endfor %}
-    </ul>
+      </ul>
+
+      <h2>Add Availability</h2>
+      <form action="/add_availability" method="POST">
+          Name: <input type="text" name="name"><br>
+          City: <input type="text" name="city"><br>
+          Day: <input type="date" name="day"><br>
+          Start: <input type="time" name="start"><br>
+          End: <input type="time" name="end"><br>
+          <input type="submit" value="Save Availability">
+      </form>
+    {% endif %}
 </body>
 </html>
