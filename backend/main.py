@@ -44,7 +44,6 @@ def register(username: str = Form(...), password: str = Form(...),
              description: str = Form(...), photo: UploadFile = File(...)):
     hashed_pw = hashlib.sha256(password.encode()).hexdigest()
     filename = photo.filename
-    # ensure unique filename to avoid collisions
     safe_name = f"{username}_{filename}"
     photo_path = os.path.join(UPLOAD_DIR, safe_name)
     with open(photo_path, "wb") as buffer:
@@ -69,11 +68,23 @@ def login(username: str = Form(...), password: str = Form(...)):
         return {"status": "success", "person_id": row[0], "photo": row[1], "description": row[2]}
     return {"status": "failed"}
 
+# <-- UPDATED: include photo and description for each availability row -->
 @app.get("/availability/all")
 def get_all_availability():
+    """
+    Returns list of availability rows with:
+    (name, city, day, start_time, end_time, photo, description)
+    photo and description come from users table (may be NULL)
+    """
     with sqlite3.connect(DB_NAME) as conn:
         cur = conn.cursor()
-        cur.execute("SELECT name, city, day, start_time, end_time FROM availability ORDER BY day")
+        cur.execute("""
+            SELECT a.name, a.city, a.day, a.start_time, a.end_time,
+                   u.photo, u.description
+            FROM availability a
+            LEFT JOIN users u ON a.person_id = u.person_id
+            ORDER BY a.day
+        """)
         rows = cur.fetchall()
     return {"availability": rows}
 
@@ -81,7 +92,6 @@ def get_all_availability():
 def add_availability(avail: Availability):
     with sqlite3.connect(DB_NAME) as conn:
         cur = conn.cursor()
-        # Get username for person_id
         cur.execute("SELECT username FROM users WHERE person_id=?", (avail.person_id,))
         user_row = cur.fetchone()
         name = user_row[0] if user_row else "Unknown"

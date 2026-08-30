@@ -11,10 +11,18 @@
         .container { width: 90%; max-width: 1000px; margin: 20px auto; }
         .card { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 18px; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: center; }
+        th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: center; vertical-align: middle; }
         th { background: #f8f9fa; }
-        .profile { text-align: center; }
-        .profile img { border-radius: 8px; max-width: 150px; height: auto; display: block; margin: 0 auto 10px; }
+        .person-cell { display: flex; align-items: center; gap: 12px; justify-content: flex-start; }
+        .person-cell img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #e6e6e6; }
+        .person-info { text-align: left; }
+        .person-info .name { font-weight: 700; }
+        .person-info .desc { color: #555; font-size: 13px; margin-top: 4px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .profile-card { text-align: left; display: flex; align-items: center; gap: 16px; }
+        .profile-card img { border-radius: 8px; width: 120px; height: 120px; object-fit: cover; border: 1px solid #e6e6e6; }
+        .profile-info { display: flex; flex-direction: column; }
+        .profile-info .username { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+        .profile-info .desc { color: #555; }
         form input, form textarea { width: 100%; padding: 8px; margin: 6px 0; box-sizing: border-box; }
         form input[type="submit"] { width: auto; background: #0d6efd; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
     </style>
@@ -34,9 +42,34 @@
         <div class="card">
             <h2>All Availability</h2>
             <table>
-                <tr><th>Name</th><th>City</th><th>Day</th><th>Start</th><th>End</th></tr>
+                <tr>
+                    <th>Person</th>
+                    <th>City</th>
+                    <th>Day</th>
+                    <th>Start</th>
+                    <th>End</th>
+                </tr>
                 {% for a in all_availability %}
-                    <tr><td>{{ a[0] }}</td><td>{{ a[1] }}</td><td>{{ a[2] }}</td><td>{{ a[3] }}</td><td>{{ a[4] }}</td></tr>
+                    {# a = (name, city, day, start, end, photo_url, desc) #}
+                    <tr>
+                        <td>
+                            <div class="person-cell">
+                                {% if a[5] %}
+                                    <img src="{{ a[5] }}" alt="photo">
+                                {% else %}
+                                    <img src="https://via.placeholder.com/64?text=No+Photo" alt="no photo">
+                                {% endif %}
+                                <div class="person-info">
+                                    <div class="name">{{ a[0] }}</div>
+                                    <div class="desc">{{ a[6] or "" }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ a[1] }}</td>
+                        <td>{{ a[2] }}</td>
+                        <td>{{ a[3] }}</td>
+                        <td>{{ a[4] }}</td>
+                    </tr>
                 {% endfor %}
             </table>
         </div>
@@ -44,9 +77,13 @@
         {% if user %}
             <div class="card profile">
                 <h2>Your Profile</h2>
-                <p><strong>{{ user[0] }}</strong></p>
-                <img src="{{ user[1] }}" alt="Profile photo">
-                <p>{{ user[2] }}</p>
+                <div class="profile-card">
+                    <img src="{{ user[1] }}" alt="Profile photo">
+                    <div class="profile-info">
+                        <div class="username">{{ user[0] }}</div>
+                        <div class="desc">{{ user[2] }}</div>
+                    </div>
+                </div>
             </div>
 
             <div class="card">
