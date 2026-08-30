@@ -1,0 +1,162 @@
+Project Structure:
+
+docker-app/
+│
+├── backend/
+│   ├── main.py
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── frontend/
+│   ├── app.py
+│   ├── templates/
+│   │   └── index.html
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+└── docker-compose.yml
+
+
+⚙️ Backend (FastAPI + SQLite)
+backend/main.py
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+import sqlite3
+
+app = FastAPI()
+
+# Create DB if not exists
+conn = sqlite3.connect("data.db")
+cur = conn.cursor()
+cur.execute("""CREATE TABLE IF NOT EXISTS availability (
+    person_id INTEGER, name TEXT, city TEXT, day TEXT, start_time TEXT, end_time TEXT)""")
+cur.execute("""CREATE TABLE IF NOT EXISTS history (
+    person_id INTEGER, action TEXT)""")
+conn.commit()
+conn.close()
+
+class Availability(BaseModel):
+    person_id: int
+    name: str
+    city: str
+    day: str
+    start_time: str
+    end_time: str
+
+@app.post("/availability")
+def add_availability(avail: Availability):
+    conn = sqlite3.connect("data.db")
+    cur = conn.cursor()
+    cur.execute("INSERT INTO availability VALUES (?, ?, ?, ?, ?, ?)", 
+                (avail.person_id, avail.name, avail.city, avail.day, avail.start_time, avail.end_time))
+    cur.execute("INSERT INTO history VALUES (?, ?)", (avail.person_id, f"{avail.name} added {avail.day} availability"))
+    conn.commit()
+    conn.close()
+    return {"status": "saved"}
+
+@app.get("/availability/{person_id}")
+def get_availability(person_id: int):
+    conn = sqlite3.connect("data.db")
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM availability WHERE person_id=?", (person_id,))
+    rows = cur.fetchall()
+    conn.close()
+    return {"availability": rows}
+
+@app.get("/history/{person_id}")
+def get_history(person_id: int):
+    conn = sqlite3.connect("data.db")
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM history WHERE person_id=?", (person_id,))
+    rows = cur.fetchall()
+    conn.close()
+    return {"history": rows}
+
+backend/requirements.txt
+
+fastapi
+uvicorn
+
+
+backend/Dockerfile
+
+FROM python:3.10-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+⚙️ Frontend (Flask)
+frontend/app.py
+
+from flask import Flask, render_template, request
+import requests
+
+app = Flask(__name__)
+
+BACKEND_URL = "http://backend:8000"
+
+@app.route("/")
+def home():
+    person_id = 1
+    availability = requests.get(f"{BACKEND_URL}/availability/{person_id}").json()
+    history = requests.get(f"{BACKEND_URL}/history/{person_id}").json()
+    return render_template("index.html", availability=availability["availability"], history=history["history"])
+
+@app.route("/add", methods=["POST"])
+def add():
+    person_id = 1
+    name = request.form["name"]
+    city = request.form["city"]
+    day = request.form["day"]
+    start_time = request.form["start"]
+    end_time = request.form["end"]
+    requests.post(f"{BACKEND_URL}/availability", json={
+        "person_id": person_id,
+        "name": name,
+        "city": city,
+        "day": day,
+        "start_time": start_time,
+        "end_time": end_time
+    })
+    return "Saved! <a href='/'>Go back</a>"
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+
+frontend/requirements.txt
+flask
+requests
+
+frontend/Dockerfile
+
+FROM python:3.9
+WORKDIR /app
+COPY . .
+RUN pip install flask requests
+CMD ["python", "app.py"]
+
+🐳 docker-compose.yml
+
+version: "3"
+services:
+  backend:
+    build: ./backend
+    container_name: backend
+    ports:
+      - "8001:8000"   # host:container mapping
+    restart: always   # optional: auto-restart if container stops
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "8080:5000"   # host:container mapping
+    depends_on:
+      - backend
+    restart: always   # optional: auto-restart if container stops
+
+
+
+

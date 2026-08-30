@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Availability & History Tracker</title>
+</head>
+<body>
+    <h2>Profile</h2>
+    {% if user %}
+        <p><b>{{ user[0] }}</b></p>
+        <img src="{{ user[1] }}" width="150">
+        <p>{{ user[2] }}</p>
+    {% endif %}
+
+    <h2>Add Availability</h2>
+    <form action="/add_availability" method="POST">
+        Name: <input type="text" name="name"><br>
+        City: <input type="text" name="city"><br>
+        Day: <input type="date" name="day"><br>
+        Start: <input type="time" name="start"><br>
+        End: <input type="time" name="end"><br>
+        <input type="submit" value="Save Availability">
+    </form>
+
+    <h2>Weekly Availability</h2>
+    <table border="1">
+        <tr><th>Day</th><th>Start Time</th><th>End Time</th></tr>
+        {% for a in availability %}
+            <tr><td>{{ a[0] }}</td><td>{{ a[1] }}</td><td>{{ a[2] }}</td></tr>
+        {% endfor %}
+    </table>
+
+    <h2>History Log</h2>
+    <ul>
+        {% for h in history %}
+            <li>{{ h[0] }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
