@@ -4,7 +4,7 @@
     <title>Register</title>
     <style>
         body { font-family: Arial; background: #f4f6f8; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .box { width: 420px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .box { width: 480px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
         input, textarea { width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; }
         input[type="submit"] { background: #0d6efd; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; }
     </style>
@@ -17,8 +17,10 @@
             <input type="password" name="password" placeholder="Password" required>
             <label>Photo</label>
             <input type="file" name="photo" accept="image/*" required>
-            <label>Description</label>
-            <textarea name="description" rows="3" maxlength="250" placeholder="Short description"></textarea>
+            <label>Short Description</label>
+            <textarea name="description" rows="2" maxlength="250" placeholder="Short description"></textarea>
+            <label>About Us Detailed</label>
+            <textarea name="about_us" rows="5" maxlength="2000" placeholder="Detailed about information"></textarea>
             <input type="submit" value="Register">
         </form>
     </div>

@@ -8,7 +8,7 @@
         header h1 { margin: 0; font-size: 22px; }
         .nav { text-align: center; margin: 14px 0; }
         .nav a { margin: 0 8px; text-decoration: none; padding: 8px 14px; background: #0d6efd; color: white; border-radius: 6px; }
-        .container { width: 90%; max-width: 1000px; margin: 20px auto; }
+        .container { width: 90%; max-width: 1100px; margin: 20px auto; }
         .card { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 18px; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: center; vertical-align: middle; }
@@ -18,13 +18,16 @@
         .person-info { text-align: left; }
         .person-info .name { font-weight: 700; }
         .person-info .desc { color: #555; font-size: 13px; margin-top: 4px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .docs-inline { margin-top: 6px; font-size: 13px; color: #333; }
+        .doc-link { color: #0d6efd; text-decoration: none; margin-right: 8px; }
         .profile-card { text-align: left; display: flex; align-items: center; gap: 16px; }
-        .profile-card img { border-radius: 8px; width: 120px; height: 120px; object-fit: cover; border: 1px solid #e6e6e6; }
+        .profile-card img { border-radius: 8px; width: 120px; height: 120px; object-fit: cover; border: 1px solid #e6e6e6; cursor: pointer; }
         .profile-info { display: flex; flex-direction: column; }
         .profile-info .username { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
         .profile-info .desc { color: #555; }
         form input, form textarea { width: 100%; padding: 8px; margin: 6px 0; box-sizing: border-box; }
         form input[type="submit"] { width: auto; background: #0d6efd; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
+        .docs-list li { margin-bottom: 6px; }
     </style>
 </head>
 <body>
@@ -50,18 +53,26 @@
                     <th>End</th>
                 </tr>
                 {% for a in all_availability %}
-                    {# a = (name, city, day, start, end, photo_url, desc) #}
+                    {# a = (name, city, day, start, end, photo_url, desc, person_id, docs_list) #}
                     <tr>
-                        <td>
+                        <td style="text-align:left;">
                             <div class="person-cell">
                                 {% if a[5] %}
-                                    <img src="{{ a[5] }}" alt="photo">
+                                    <a href="/about/{{ a[7] }}"><img src="{{ a[5] }}" alt="photo"></a>
                                 {% else %}
-                                    <img src="https://via.placeholder.com/64?text=No+Photo" alt="no photo">
+                                    <a href="/about/{{ a[7] }}"><img src="https://via.placeholder.com/64?text=No+Photo" alt="no photo"></a>
                                 {% endif %}
                                 <div class="person-info">
                                     <div class="name">{{ a[0] }}</div>
                                     <div class="desc">{{ a[6] or "" }}</div>
+                                    {% if a[8] and a[8]|length > 0 %}
+                                        <div class="docs-inline">
+                                            {% for doc in a[8] %}
+                                                {# doc = (name, file) #}
+                                                <a class="doc-link" href="/view_document?file={{ doc[1] | urlencode }}" target="_blank" rel="noopener noreferrer">{{ doc[0] }}</a>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </td>
@@ -78,10 +89,13 @@
             <div class="card profile">
                 <h2>Your Profile</h2>
                 <div class="profile-card">
-                    <img src="{{ user[1] }}" alt="Profile photo">
+                    <a href="/about/{{ session['person_id'] }}">
+                        <img src="{{ user[1] }}" alt="Profile photo">
+                    </a>
                     <div class="profile-info">
                         <div class="username">{{ user[0] }}</div>
                         <div class="desc">{{ user[2] }}</div>
+                        <div style="margin-top:8px;"><a href="/about/{{ session['person_id'] }}">More About Us</a></div>
                     </div>
                 </div>
             </div>
@@ -103,6 +117,27 @@
                         <li>{{ h[0] }}</li>
                     {% endfor %}
                 </ul>
+            </div>
+
+            <div class="card">
+                <h2>Reports Documents</h2>
+                <ul class="docs-list">
+                    {% for d in documents %}
+                        <li>
+                            <a href="/view_document?file={{ d[1] | urlencode }}" target="_blank" rel="noopener noreferrer">
+                                {{ d[0] }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                <form action="/upload_document" method="POST" enctype="multipart/form-data">
+                    <label>Document name</label>
+                    <input type="text" name="name" required>
+                    <label>File (PDF or Image)</label>
+                    <input type="file" name="file" accept="application/pdf,image/*" required>
+                    <input type="submit" value="Upload Document">
+                </form>
             </div>
 
             <div class="card">
