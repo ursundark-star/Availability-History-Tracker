@@ -12,25 +12,77 @@ spec:
       labels:
         app: backend
     spec:
+      initContainers:
+      - name: fix-permissions
+        image: busybox
+        securityContext:
+          runAsUser: 0
+        command:
+        - sh
+        - -c
+        - |
+          rm -f /app/db/simpleapp.db
+          mkdir -p /app/db /app/uploads
+          chown -R 1000:1000 /app/db /app/uploads
+        volumeMounts:
+        - name: db-storage
+          mountPath: /app/db
+        - name: uploads
+          mountPath: /app/uploads
+
       containers:
       - name: backend
         image: docker.io/sun123testdoc/availability-backend:latest
         ports:
         - containerPort: 8000
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
         volumeMounts:
         - name: uploads
           mountPath: /app/uploads
+        - name: db-storage
+          mountPath: /app/db
+
       volumes:
       - name: uploads
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: uploads-pvc
+      - name: db-storage
+        persistentVolumeClaim:
+          claimName: db-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploads-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: backend
 spec:
+  type: NodePort
   selector:
     app: backend
   ports:
   - port: 8000
     targetPort: 8000
+    nodePort: 31501

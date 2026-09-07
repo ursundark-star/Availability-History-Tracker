@@ -21,15 +21,17 @@ spec:
         - name: API_URL
           value: "http://backend:8000"
         - name: PUBLIC_BACKEND_URL
-          value: "http://backend:8000"
+          value: "http://localhost:31501"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend
 spec:
+  type: NodePort        # <-- must be NodePort
   selector:
     app: frontend
   ports:
-  - port: 5000
-    targetPort: 5000
+  - port: 5000          # service port
+    targetPort: 5000    # container port
+    nodePort: 31500     # external port (must be 30000–32767)

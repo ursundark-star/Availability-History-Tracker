@@ -5,7 +5,6 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f8; }
         header { background: #0d6efd; color: white; padding: 18px; text-align: center; }
-        header h1 { margin: 0; font-size: 22px; }
         .nav { text-align: center; margin: 14px 0; }
         .nav a { margin: 0 8px; text-decoration: none; padding: 8px 14px; background: #0d6efd; color: white; border-radius: 6px; }
         .container { width: 90%; max-width: 1100px; margin: 20px auto; }
@@ -13,21 +12,21 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: center; vertical-align: middle; }
         th { background: #f8f9fa; }
-        .person-cell { display: flex; align-items: center; gap: 12px; justify-content: flex-start; }
-        .person-cell img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #e6e6e6; }
+        .person-cell { display: flex; align-items: center; gap: 12px; }
+        .person-cell img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
         .person-info { text-align: left; }
-        .person-info .name { font-weight: 700; }
-        .person-info .desc { color: #555; font-size: 13px; margin-top: 4px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .docs-inline { margin-top: 6px; font-size: 13px; color: #333; }
+        .person-info .name { font-weight: bold; }
+        .person-info .desc { color: #555; font-size: 13px; margin-top: 4px; }
+        .docs-inline { margin-top: 6px; font-size: 13px; }
         .doc-link { color: #0d6efd; text-decoration: none; margin-right: 8px; }
-        .profile-card { text-align: left; display: flex; align-items: center; gap: 16px; }
-        .profile-card img { border-radius: 8px; width: 120px; height: 120px; object-fit: cover; border: 1px solid #e6e6e6; cursor: pointer; }
-        .profile-info { display: flex; flex-direction: column; }
-        .profile-info .username { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-        .profile-info .desc { color: #555; }
-        form input, form textarea { width: 100%; padding: 8px; margin: 6px 0; box-sizing: border-box; }
-        form input[type="submit"] { width: auto; background: #0d6efd; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
-        .docs-list li { margin-bottom: 6px; }
+        /* Profile photo fix */
+        .profile-card img {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #e6e6e6;
+        }
     </style>
 </head>
 <body>
@@ -49,33 +48,66 @@
                     <th>Person</th>
                     <th>City</th>
                     <th>Day</th>
+                    <th>Date</th>
                     <th>Start</th>
                     <th>End</th>
+                    <th>Contact</th>
                 </tr>
                 {% for a in all_availability %}
-                    {# a = (name, city, day, start, end, photo_url, desc, person_id, docs_list) #}
-                    <tr>
-                        <td style="text-align:left;">
-                            <div class="person-cell">
-                                {% if a[5] %}
-                                    <a href="/about/{{ a[7] }}"><img src="{{ a[5] }}" alt="photo"></a>
-                                {% else %}
-                                    <a href="/about/{{ a[7] }}"><img src="https://via.placeholder.com/64?text=No+Photo" alt="no photo"></a>
+                <tr>
+                    <td>
+                        <div class="person-cell">
+                            {% if a[7] %}
+                                <a href="/about/{{ a[9] }}"><img src="{{ a[7] }}" alt="photo"></a>
+                            {% else %}
+                                <a href="/about/{{ a[9] }}"><img src="https://via.placeholder.com/64?text=No+Photo" alt="no photo"></a>
+                            {% endif %}
+                            <div class="person-info">
+                                <div class="name">{{ a[0] }}</div>
+                                <div class="desc">{{ a[8] }}</div>
+                                {% if a[10] and a[10]|length > 0 %}
+                                    <div class="docs-inline">
+                                        {% for doc in a[10] %}
+                                            <a class="doc-link" href="/view_document?file={{ doc[1] | urlencode }}" target="_blank">{{ doc[0] }}</a>
+                                        {% endfor %}
+                                    </div>
                                 {% endif %}
-                                <div class="person-info">
-                                    <div class="name">{{ a[0] }}</div>
-                                    <div class="desc">{{ a[6] or "" }}</div>
-                                    {% if a[8] and a[8]|length > 0 %}
-                                        <div class="docs-inline">
-                                            {% for doc in a[8] %}
-                                                {# doc = (name, file) #}
-                                                <a class="doc-link" href="/view_document?file={{ doc[1] | urlencode }}" target="_blank" rel="noopener noreferrer">{{ doc[0] }}</a>
-                                            {% endfor %}
-                                        </div>
-                                    {% endif %}
-                                </div>
                             </div>
-                        </td>
+                        </div>
+                    </td>
+                    <td>{{ a[1] }}</td>
+                    <td>{{ a[2] }}</td>
+                    <td>{{ a[3] }}</td>
+                    <td>{{ a[4] }}</td>
+                    <td>{{ a[5] }}</td>
+                    <td>{{ a[6] }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        {% if user %}
+        <div class="card profile">
+            <h2>Your Profile</h2>
+            <div class="profile-card">
+                <a href="/about/{{ session['person_id'] }}">
+                    <img src="{{ user[1] }}" alt="Profile photo">
+                </a>
+                <div class="profile-info">
+                    <div class="username">{{ user[0] }}</div>
+                    <div class="desc">{{ user[2] }}</div>
+                    <div style="margin-top:8px;"><a href="/about/{{ session['person_id'] }}">More About Us</a></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Your Availability</h2>
+            <table>
+                <tr><th>Day</th><th>Date</th><th>Start</th><th>End</th><th>Contact</th></tr>
+                {% for a in availability %}
+                    <tr>
+                        <td>{{ a[0] }}</td>
                         <td>{{ a[1] }}</td>
                         <td>{{ a[2] }}</td>
                         <td>{{ a[3] }}</td>
@@ -85,75 +117,52 @@
             </table>
         </div>
 
-        {% if user %}
-            <div class="card profile">
-                <h2>Your Profile</h2>
-                <div class="profile-card">
-                    <a href="/about/{{ session['person_id'] }}">
-                        <img src="{{ user[1] }}" alt="Profile photo">
-                    </a>
-                    <div class="profile-info">
-                        <div class="username">{{ user[0] }}</div>
-                        <div class="desc">{{ user[2] }}</div>
-                        <div style="margin-top:8px;"><a href="/about/{{ session['person_id'] }}">More About Us</a></div>
-                    </div>
-                </div>
-            </div>
+        <div class="card">
+            <h2>Your History</h2>
+            <ul>
+                {% for h in history %}
+                    <li>{{ h[0] }}</li>
+                {% endfor %}
+            </ul>
+        </div>
 
-            <div class="card">
-                <h2>Your Availability</h2>
-                <table>
-                    <tr><th>Day</th><th>Start</th><th>End</th></tr>
-                    {% for a in availability %}
-                        <tr><td>{{ a[0] }}</td><td>{{ a[1] }}</td><td>{{ a[2] }}</td></tr>
-                    {% endfor %}
-                </table>
-            </div>
+        <div class="card">
+            <h2>Reports Documents</h2>
+            <ul class="docs-list">
+                {% for d in documents %}
+                    <li>
+                        <a href="/view_document?file={{ d[1] | urlencode }}" target="_blank">{{ d[0] }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
 
-            <div class="card">
-                <h2>Your History</h2>
-                <ul>
-                    {% for h in history %}
-                        <li>{{ h[0] }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
+            <form action="/upload_document" method="POST" enctype="multipart/form-data">
+                <label>Document name</label>
+                <input type="text" name="name" required>
+                <label>File (PDF or Image)</label>
+                <input type="file" name="file" accept="application/pdf,image/*" required>
+                <input type="submit" value="Upload Document">
+            </form>
+        </div>
 
-            <div class="card">
-                <h2>Reports Documents</h2>
-                <ul class="docs-list">
-                    {% for d in documents %}
-                        <li>
-                            <a href="/view_document?file={{ d[1] | urlencode }}" target="_blank" rel="noopener noreferrer">
-                                {{ d[0] }}
-                            </a>
-                        </li>
-                    {% endfor %}
-                </ul>
-
-                <form action="/upload_document" method="POST" enctype="multipart/form-data">
-                    <label>Document name</label>
-                    <input type="text" name="name" required>
-                    <label>File (PDF or Image)</label>
-                    <input type="file" name="file" accept="application/pdf,image/*" required>
-                    <input type="submit" value="Upload Document">
-                </form>
-            </div>
-
-            <div class="card">
-                <h2>Add Availability</h2>
-                <form action="/add_availability" method="POST">
-                    <label>City</label>
-                    <input type="text" name="city" required>
-                    <label>Day</label>
-                    <input type="date" name="day" required>
-                    <label>Start</label>
-                    <input type="time" name="start" required>
-                    <label>End</label>
-                    <input type="time" name="end" required>
-                    <input type="submit" value="Save Availability">
-                </form>
-            </div>
+        <div class="card">
+            <h2>Add Availability</h2>
+            <form action="/add_availability" method="POST">
+                <label>City</label>
+                <input type="text" name="city" required>
+                <label>Day</label>
+                <input type="text" name="day" required>
+                <label>Date</label>
+                <input type="date" name="date" required>
+                <label>Start</label>
+                <input type="time" name="start" required>
+                <label>End</label>
+                <input type="time" name="end" required>
+                <label>Contact</label>
+                <input type="text" name="contact" required>
+                <input type="submit" value="Save Availability">
+            </form>
+        </div>
         {% endif %}
     </div>
 </body>

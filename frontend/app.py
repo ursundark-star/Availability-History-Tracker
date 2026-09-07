@@ -24,11 +24,11 @@ def home():
 
     processed_all = []
     for row in all_availability:
-        # row: (name, city, day, start_time, end_time, photo, desc, person_id)
-        name, city, day, start_time, end_time, photo_path, desc, person_id = row
+        # row: (username, city, day, date, start, end, contact, photo, description, person_id)
+        username, city, day, date, start_time, end_time, contact, photo_path, desc, person_id = row
         photo_url = f"{PUBLIC_BACKEND_URL}{photo_path}" if photo_path and isinstance(photo_path, str) and photo_path.startswith("/") else None
         person_docs = docs_map.get(person_id, [])
-        processed_all.append((name, city, day, start_time, end_time, photo_url, desc, person_id, person_docs))
+        processed_all.append((username, city, day, date, start_time, end_time, contact, photo_url, desc, person_id, person_docs))
 
     documents = []
     user = None
@@ -82,8 +82,11 @@ def upload_document():
 def view_document():
     file_param = request.args.get("file", "")
     file_param = unquote(file_param)
-    if not file_param or not isinstance(file_param, str) or not file_param.startswith("/uploads/"):
+    if not file_param or not isinstance(file_param, str):
         return "Invalid file path.", 400
+    # Normalize path: ensure /uploads/ prefix
+    if not file_param.startswith("/uploads/"):
+        file_param = "/uploads/" + file_param
     file_url = f"{PUBLIC_BACKEND_URL}{file_param}"
     mime_type, _ = mimetypes.guess_type(file_param)
     if not mime_type:
@@ -132,8 +135,10 @@ def add_availability():
         "person_id": person_id,
         "city": request.form["city"],
         "day": request.form["day"],
+        "date": request.form["date"],
         "start_time": request.form["start"],
-        "end_time": request.form["end"]
+        "end_time": request.form["end"],
+        "contact": request.form["contact"]
     }
     requests.post(f"{API_URL}/availability", json=data)
     return redirect(url_for("home"))

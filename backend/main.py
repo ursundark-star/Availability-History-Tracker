@@ -1,170 +1,211 @@
-from fastapi import FastAPI, UploadFile, File, Form
-from pydantic import BaseModel
-import sqlite3, os, shutil, hashlib
+import os
+import sqlite3
+import shutil
+import hashlib
+from PIL import Image
+from fastapi import FastAPI, UploadFile, File, Form, Body
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-DB_NAME = "data.db"
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# Allow frontend to call backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Serve uploaded files
+UPLOAD_DIR = "/app/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
+DB_DIR = "/app/db"
+os.makedirs(DB_DIR, exist_ok=True)
+DB_FILE = os.path.join(DB_DIR, "simpleapp.db")
+
+def get_db():
+    conn = sqlite3.connect(DB_FILE, timeout=30)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_db()
     cur = conn.cursor()
-    cur.execute("""CREATE TABLE IF NOT EXISTS availability (
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        person_id INTEGER, name TEXT, city TEXT, day TEXT, start_time TEXT, end_time TEXT)""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS history (
-        person_id INTEGER, action TEXT)""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS users (
-        person_id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
         password TEXT,
         photo TEXT,
-        description TEXT,
-        about_us TEXT)""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS documents (
+        description TEXT
+    )
+    """)
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS availability (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        person_id INTEGER,
+        user_id INTEGER,
+        city TEXT,
+        day TEXT,
+        date TEXT,
+        start TEXT,
+        end TEXT,
+        contact TEXT
+    )
+    """)
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
         name TEXT,
-        file TEXT)""")
+        file TEXT
+    )
+    """)
     conn.commit()
     conn.close()
 
 init_db()
 
-class Availability(BaseModel):
-    person_id: int
-    city: str
-    day: str
-    start_time: str
-    end_time: str
-
+# --- Auth ---
 @app.post("/register")
-def register(username: str = Form(...), password: str = Form(...),
-             description: str = Form(...), about_us: str = Form(""),
-             photo: UploadFile = File(...)):
-    hashed_pw = hashlib.sha256(password.encode()).hexdigest()
-    safe_name = f"{username}_{photo.filename}"
-    photo_path = os.path.join(UPLOAD_DIR, safe_name)
-    with open(photo_path, "wb") as buffer:
-        shutil.copyfileobj(photo.file, buffer)
-    with sqlite3.connect(DB_NAME) as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO users (username, password, photo, description, about_us) VALUES (?, ?, ?, ?, ?)",
-            (username, hashed_pw, f"/uploads/{safe_name}", description[:250], about_us)
-        )
+async def register(username: str = Form(...), password: str = Form(...),
+                   description: str = Form(""), about_us: str = Form(""),
+                   photo: UploadFile = File(None)):
+    conn = get_db()
+    try:
+        hashed_pw = hash_password(password)
+        photo_path = None
+        if photo:
+            photo_path = f"/uploads/{photo.filename}"
+            file_path = os.path.join(UPLOAD_DIR, photo.filename)
+            # Save original upload
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(photo.file, buffer)
+            # Resize and overwrite
+            img = Image.open(file_path)
+            img.thumbnail((300, 300))  # max size
+            img.save(file_path, optimize=True, quality=85)
+        conn.execute("INSERT INTO users (username, password, photo, description) VALUES (?, ?, ?, ?)",
+                     (username, hashed_pw, photo_path, description))
         conn.commit()
-    return {"status": "registered"}
+    except sqlite3.IntegrityError:
+        return {"status": "error", "message": "Username already exists"}
+    finally:
+        conn.close()
+    return {"status": "success"}
 
 @app.post("/login")
-def login(username: str = Form(...), password: str = Form(...)):
-    hashed_pw = hashlib.sha256(password.encode()).hexdigest()
-    with sqlite3.connect(DB_NAME) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT person_id, photo, description FROM users WHERE username=? AND password=?",
-                    (username, hashed_pw))
-        row = cur.fetchone()
-    if row:
-        return {"status": "success", "person_id": row[0], "photo": row[1], "description": row[2]}
-    return {"status": "failed"}
+async def login(username: str = Form(...), password: str = Form(...)):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, password FROM users WHERE username=?", (username,))
+    user = cur.fetchone()
+    conn.close()
+    if not user or user["password"] != hash_password(password):
+        return {"status": "error"}
+    return {"status": "success", "person_id": user["id"]}
+
+# --- Availability ---
+@app.get("/all_availability")
+async def all_availability():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+    SELECT u.username, a.city, a.day, a.date, a.start, a.end, a.contact, u.photo, u.description, u.id
+    FROM availability a
+    JOIN users u ON a.user_id = u.id
+    """)
+    rows = cur.fetchall()
+    conn.close()
+    return {"availability": [tuple(row) for row in rows]}
 
 @app.get("/availability/all")
-def get_all_availability():
-    """
-    Returns list of availability rows with:
-    (name, city, day, start_time, end_time, photo, description, person_id)
-    """
-    with sqlite3.connect(DB_NAME) as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT a.name, a.city, a.day, a.start_time, a.end_time,
-                   u.photo, u.description, u.person_id
-            FROM availability a
-            LEFT JOIN users u ON a.person_id = u.person_id
-            ORDER BY a.day
-        """)
-        rows = cur.fetchall()
-    return {"availability": rows}
-
-@app.post("/availability")
-def add_availability(avail: Availability):
-    with sqlite3.connect(DB_NAME) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT username FROM users WHERE person_id=?", (avail.person_id,))
-        user_row = cur.fetchone()
-        name = user_row[0] if user_row else "Unknown"
-        cur.execute("INSERT INTO availability (person_id, name, city, day, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?)",
-                    (avail.person_id, name, avail.city, avail.day, avail.start_time, avail.end_time))
-        cur.execute("INSERT INTO history VALUES (?, ?)", (avail.person_id, f"{name} added {avail.day} availability"))
-        conn.commit()
-    return {"status": "saved"}
+async def availability_all_alias():
+    return await all_availability()
 
 @app.get("/availability/{person_id}")
-def get_availability(person_id: int):
-    with sqlite3.connect(DB_NAME) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT day, start_time, end_time FROM availability WHERE person_id=? ORDER BY day", (person_id,))
-        rows = cur.fetchall()
-    return {"availability": rows}
+async def availability_by_user(person_id: int):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT city, day, date, start, end, contact FROM availability WHERE user_id=?", (person_id,))
+    rows = cur.fetchall()
+    conn.close()
+    return {"availability": [tuple(row) for row in rows]}
 
-@app.get("/history/{person_id}")
-def get_history(person_id: int):
-    with sqlite3.connect(DB_NAME) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT action FROM history WHERE person_id=? ORDER BY rowid DESC", (person_id,))
-        rows = cur.fetchall()
-    return {"history": rows}
+@app.post("/availability")
+async def add_availability_api(payload: dict = Body(...)):
+    person_id = payload.get("person_id")
+    city = payload.get("city")
+    day = payload.get("day")
+    date = payload.get("date")
+    start_time = payload.get("start_time")
+    end_time = payload.get("end_time")
+    contact = payload.get("contact")
 
-@app.get("/user/{person_id}")
-def get_user(person_id: int):
-    with sqlite3.connect(DB_NAME) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT username, photo, description, about_us FROM users WHERE person_id=?", (person_id,))
-        row = cur.fetchone()
-    return {"user": row}
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO availability (user_id, city, day, date, start, end, contact) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (person_id, city, day, date, start_time, end_time, contact)
+    )
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
 
-@app.get("/about/{person_id}")
-def get_about(person_id: int):
-    with sqlite3.connect(DB_NAME) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT about_us FROM users WHERE person_id=?", (person_id,))
-        row = cur.fetchone()
-    return {"about_us": row[0] if row else ""}
-
+# --- Documents ---
 @app.post("/documents")
-def upload_document(person_id: int = Form(...), name: str = Form(...), file: UploadFile = File(...)):
-    filename = f"{person_id}_{file.filename}"
+async def upload_document(person_id: int = Form(...), name: str = Form(...), file: UploadFile = File(...)):
+    filename = file.filename
     file_path = os.path.join(UPLOAD_DIR, filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    with sqlite3.connect(DB_NAME) as conn:
-        cur = conn.cursor()
-        cur.execute("INSERT INTO documents (person_id, name, file) VALUES (?, ?, ?)",
-                    (person_id, name, f"/uploads/{filename}"))
-        conn.commit()
-    return {"status": "uploaded"}
-
-@app.get("/documents/{person_id}")
-def list_documents(person_id: int):
-    with sqlite3.connect(DB_NAME) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT name, file FROM documents WHERE person_id=?", (person_id,))
-        rows = cur.fetchall()
-    return {"documents": rows}
+    # Store with /uploads/ prefix so viewer works
+    conn = get_db()
+    conn.execute("INSERT INTO documents (user_id, name, file) VALUES (?, ?, ?)",
+                 (person_id, name, f"/uploads/{filename}"))
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
 
 @app.get("/documents/all")
-def list_all_documents():
-    """
-    Returns all documents as list of (person_id, name, file)
-    """
-    with sqlite3.connect(DB_NAME) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT person_id, name, file FROM documents")
-        rows = cur.fetchall()
-    return {"documents": rows}
+async def documents_all():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT user_id, name, file FROM documents")
+    rows = cur.fetchall()
+    conn.close()
+    return {"documents": [(row["user_id"], row["name"], row["file"]) for row in rows]}
+
+@app.get("/documents/{person_id}")
+async def documents_by_user(person_id: int):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT name, file FROM documents WHERE user_id=?", (person_id,))
+    rows = cur.fetchall()
+    conn.close()
+    return {"documents": [(row["name"], row["file"]) for row in rows]}
+
+# --- User & About ---
+@app.get("/user/{person_id}")
+async def get_user(person_id: int):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT username, photo, description FROM users WHERE id=?", (person_id,))
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return {"user": None}
+    return {"user": (row["username"], row["photo"], row["description"], person_id)}
+
+@app.get("/about/{person_id}")
+async def about_user(person_id: int):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT description FROM users WHERE id=?", (person_id,))
+    row = cur.fetchone()
+    conn.close()
+    return {"about_us": row["description"] if row else ""}
