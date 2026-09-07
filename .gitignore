@@ -1,0 +1,13 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# SQLite DB files
+*.db
+
+# Uploads (avoid committing user files)
+frontend/static/uploads/
+backend/uploads/
+
+# Docker logs
+*.log
