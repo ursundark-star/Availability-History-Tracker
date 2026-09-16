@@ -6,26 +6,36 @@ import mimetypes
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
-API_URL = os.environ.get("API_URL", "http://backend:8000")
-PUBLIC_BACKEND_URL = os.environ.get("PUBLIC_BACKEND_URL", "http://localhost:8001")
+API_URL = os.environ.get("API_URL", "http://localhost:8000")
+PUBLIC_BACKEND_URL = os.environ.get("PUBLIC_BACKEND_URL", "http://localhost:8000")
 
 @app.route("/")
 def home():
-    # fetch availability (includes person_id)
     resp = requests.get(f"{API_URL}/availability/all")
     all_availability = resp.json().get("availability", [])
 
-    # fetch all documents once and map by person_id
     docs_resp = requests.get(f"{API_URL}/documents/all")
     docs_all = docs_resp.json().get("documents", [])
     docs_map = {}
-    for pid, name, file in docs_all:
-        docs_map.setdefault(pid, []).append((name, file))
+    for doc in docs_all:
+        person_id = doc.get("person_id")
+        if person_id is None:
+            continue
+        docs_map.setdefault(person_id, []).append((doc.get("name"), doc.get("file")))
 
     processed_all = []
     for row in all_availability:
-        # row: (username, city, day, date, start, end, contact, photo, description, person_id)
-        username, city, day, date, start_time, end_time, contact, photo_path, desc, person_id = row
+        username = row.get("person")
+        city = row.get("city")
+        day = row.get("day")
+        date = row.get("date")
+        start_time = row.get("start")
+        end_time = row.get("end")
+        contact = row.get("contact")
+        photo_path = row.get("photo")
+        desc = row.get("description")
+        person_id = row.get("person_id")
+
         photo_url = f"{PUBLIC_BACKEND_URL}{photo_path}" if photo_path and isinstance(photo_path, str) and photo_path.startswith("/") else None
         person_docs = docs_map.get(person_id, [])
         processed_all.append((username, city, day, date, start_time, end_time, contact, photo_url, desc, person_id, person_docs))
@@ -38,14 +48,16 @@ def home():
         person_id = session["person_id"]
         user_resp = requests.get(f"{API_URL}/user/{person_id}").json().get("user")
         if user_resp:
-            u = list(user_resp)
-            if u[1] and u[1].startswith("/"):
-                u[1] = f"{PUBLIC_BACKEND_URL}{u[1]}"
-            user = tuple(u)
+            user = (
+                user_resp.get("username"),
+                f"{PUBLIC_BACKEND_URL}{user_resp['photo']}" if user_resp.get("photo") and user_resp["photo"].startswith("/") else user_resp.get("photo"),
+                user_resp.get("description"),
+            )
+
         availability = requests.get(f"{API_URL}/availability/{person_id}").json().get("availability", [])
         history = requests.get(f"{API_URL}/history/{person_id}").json().get("history", [])
-        docs_resp = requests.get(f"{API_URL}/documents/{person_id}").json()
-        documents = docs_resp.get("documents", [])
+        docs_resp = requests.get(f"{API_URL}/documents/{person_id}")
+        documents = docs_resp.json().get("documents", [])
 
     return render_template("index.html",
                            user=user,
@@ -61,9 +73,9 @@ def about(person_id):
     user_resp = requests.get(f"{API_URL}/user/{person_id}").json().get("user")
     avatar_url = None
     if user_resp:
-        u = list(user_resp)
-        if u[1] and isinstance(u[1], str) and u[1].startswith("/"):
-            avatar_url = f"{PUBLIC_BACKEND_URL}{u[1]}"
+        photo = user_resp.get("photo")
+        if photo and isinstance(photo, str) and photo.startswith("/"):
+            avatar_url = f"{PUBLIC_BACKEND_URL}{photo}"
     return render_template("about.html", about=about_resp.get("about_us", ""), avatar_url=avatar_url)
 
 @app.route("/upload_document", methods=["POST"])

@@ -21,7 +21,6 @@ spec:
         - sh
         - -c
         - |
-          rm -f /app/db/simpleapp.db
           mkdir -p /app/db /app/uploads
           chown -R 1000:1000 /app/db /app/uploads
         volumeMounts:
@@ -32,7 +31,7 @@ spec:
 
       containers:
       - name: backend
-        image: docker.io/sun123testdoc/availability-backend:latest
+        image: sun123testdoc/availability-backend:latest
         ports:
         - containerPort: 8000
         securityContext:
@@ -43,6 +42,7 @@ spec:
           mountPath: /app/uploads
         - name: db-storage
           mountPath: /app/db
+        # No envFrom here — secrets are fetched dynamically by app
 
       volumes:
       - name: uploads
