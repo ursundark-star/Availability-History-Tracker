@@ -30,7 +30,7 @@ spec:
           mountPath: /app/uploads
       containers:
       - name: backend
-        image: sun123testdoc/availability-backend:b5b3f11
+        image: sun123testdoc/availability-backend:latest
         ports:
         - containerPort: 8000
         securityContext:

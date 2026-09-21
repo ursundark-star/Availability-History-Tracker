@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: sun123testdoc/availability-frontend:b5b3f11
+        image: sun123testdoc/availability-frontend:latest
         ports:
         - containerPort: 5000
         env:
