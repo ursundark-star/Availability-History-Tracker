@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: docker.io/sun123testdoc/availability-frontend:latest
+        image: docker.io/sun123testdoc/availability-frontend:<commit-sha>
         ports:
         - containerPort: 5000
         env:
