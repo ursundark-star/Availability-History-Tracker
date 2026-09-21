@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: docker.io/sun123testdoc/availability-frontend:4bee67
+        image: sun123testdoc/availability-frontend:b5b3f11
         ports:
         - containerPort: 5000
         env:
@@ -28,10 +28,10 @@ kind: Service
 metadata:
   name: frontend
 spec:
-  type: NodePort        # <-- must be NodePort
+  type: NodePort
   selector:
     app: frontend
   ports:
-  - port: 5000          # service port
-    targetPort: 5000    # container port
-    nodePort: 31500     # external port (must be 30000–32767)
+  - port: 5000
+    targetPort: 5000
+    nodePort: 31500
