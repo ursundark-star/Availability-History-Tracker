@@ -1,0 +1,11 @@
+﻿{
+  "agentId": 22,
+  "agentName": "SDMD",
+  "poolId": 1,
+  "poolName": "Default",
+  "serverUrl": "https://pipelinesghubeus22.actions.githubusercontent.com/5CWc1FBDNdMOApO1yNn7nW6GwauiqzVptUuRuEELrGNonIRkOP/",
+  "gitHubUrl": "https://github.com/ursundark-star/Availability-History-Tracker",
+  "workFolder": "_work",
+  "useV2Flow": true,
+  "serverUrlV2": "https://broker.actions.githubusercontent.com/"
+}

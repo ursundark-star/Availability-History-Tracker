@@ -1,5 +1,4 @@
 name: CI/CD Pipeline
-
 on:
   push:
     branches:
@@ -7,34 +6,31 @@ on:
 
 jobs:
   docker:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Log in to Docker Hub
-      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-    # Build backend image
-    - name: Build backend image
-      run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/availability-backend:${{ github.sha }} ./backend
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/availability-backend:latest ./backend
-        docker push ${{ secrets.DOCKER_USERNAME }}/availability-backend:${{ github.sha }}
-        docker push ${{ secrets.DOCKER_USERNAME }}/availability-backend:latest
+      - name: Build backend image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/availability-backend:${{ github.sha }} ./backend
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/availability-backend:latest ./backend
+          docker push ${{ secrets.DOCKER_USERNAME }}/availability-backend:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/availability-backend:latest
 
-    # Build frontend image
-    - name: Build frontend image
-      run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/availability-frontend:${{ github.sha }} ./frontend
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/availability-frontend:latest ./frontend
-        docker push ${{ secrets.DOCKER_USERNAME }}/availability-frontend:${{ github.sha }}
-        docker push ${{ secrets.DOCKER_USERNAME }}/availability-frontend:latest
+      - name: Build frontend image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/availability-frontend:${{ github.sha }} ./frontend
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/availability-frontend:latest ./frontend
+          docker push ${{ secrets.DOCKER_USERNAME }}/availability-frontend:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/availability-frontend:latest
 
-    # Deploy to Kubernetes
-    - name: Deploy to Kubernetes
-      run: |
-        kubectl set image deployment/backend backend=${{ secrets.DOCKER_USERNAME }}/availability-backend:${{ github.sha }}
-        kubectl set image deployment/frontend frontend=${{ secrets.DOCKER_USERNAME }}/availability-frontend:${{ github.sha }}
-        kubectl rollout status deployment/backend
-        kubectl rollout status deployment/frontend
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl set image deployment/backend backend=${{ secrets.DOCKER_USERNAME }}/availability-backend:${{ github.sha }}
+          kubectl set image deployment/frontend frontend=${{ secrets.DOCKER_USERNAME }}/availability-frontend:${{ github.sha }}
+          kubectl rollout status deployment/backend
+          kubectl rollout status deployment/frontend
