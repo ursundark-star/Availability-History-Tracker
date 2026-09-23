@@ -17,14 +17,14 @@ jobs:
         run: |
           echo "Username: ${{ secrets.DOCKER_USERNAME }}"
           echo "Password length: ${#${{ secrets.DOCKER_PASSWORD }}}"
-        shell: bash
+  
 
       - name: Log in to Docker Hub
-        shell: bash
         env:
           USERNAME: ${{ secrets.DOCKER_USERNAME }}
           PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin
+        run: |
+          Write-Output $env:PASSWORD | docker login -u $env:USERNAME --password-stdin
 
       - name: Build backend image
         run: |
