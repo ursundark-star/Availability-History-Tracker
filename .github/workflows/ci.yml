@@ -17,8 +17,10 @@ jobs:
         run: |
           echo "Username: ${{ secrets.DOCKER_USERNAME }}"
           echo "Password length: ${#${{ secrets.DOCKER_PASSWORD }}}"
+        shell: bash
 
       - name: Log in to Docker Hub
+        shell: bash
         env:
           USERNAME: ${{ secrets.DOCKER_USERNAME }}
           PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
