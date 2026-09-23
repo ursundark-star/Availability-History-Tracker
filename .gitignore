@@ -8,6 +8,7 @@ __pycache__/
 # Uploads (avoid committing user files)
 frontend/static/uploads/
 backend/uploads/
+k8s/actions-runner/_work/
 
 # Docker logs
 *.log
