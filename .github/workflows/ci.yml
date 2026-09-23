@@ -27,7 +27,7 @@ jobs:
           USERNAME: ${{ secrets.DOCKER_USERNAME }}
           PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
-          Write-Output $env:PASSWORD | docker login -u $env:USERNAME --password-stdin
+          [Console]::Out.Write($env:PASSWORD) | docker login -u $env:USERNAME --password-stdin
 
       - name: Build backend image
         run: |
