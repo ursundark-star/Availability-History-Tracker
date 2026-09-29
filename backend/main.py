@@ -7,8 +7,12 @@ from PIL import Image
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI()
+Instrumentator(excluded_handlers=["/metrics"]).instrument(app).expose(
+    app, include_in_schema=False
+)
 
 # Allow frontend to call backend
 app.add_middleware(

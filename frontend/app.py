@@ -2,9 +2,11 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import requests, os
 from urllib.parse import unquote
 import mimetypes
+from prometheus_flask_exporter import PrometheusMetrics
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
+PrometheusMetrics(app, path="/metrics")
 
 API_URL = os.environ.get("API_URL", "http://localhost:8000")
 PUBLIC_BACKEND_URL = os.environ.get("PUBLIC_BACKEND_URL", "http://localhost:8000")

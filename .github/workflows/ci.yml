@@ -45,6 +45,8 @@ jobs:
           BACKEND_IMAGE: ${{ secrets.DOCKER_USERNAME }}/availability-backend:${{ github.sha }}
           FRONTEND_IMAGE: ${{ secrets.DOCKER_USERNAME }}/availability-frontend:${{ github.sha }}
         run: |
+          kubectl apply -f k8s/backend-deployment.yaml
+          kubectl apply -f k8s/frontend-deployment.yaml
           kubectl set image deployment/backend backend=${BACKEND_IMAGE} --record
           kubectl set image deployment/frontend frontend=${FRONTEND_IMAGE} --record
           kubectl rollout status deployment/backend --timeout=120s
