@@ -2,7 +2,9 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: availability-ingress
+  namespace: default
 spec:
+  ingressClassName: nginx   # 👈 Explicitly link to the IngressClass
   rules:
   - host: availability.local
     http:

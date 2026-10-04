@@ -112,7 +112,7 @@ spec:
     app: backend
   ports:
     - name: metrics
-      port: 9100
+      port: 8000
       targetPort: 8000
       protocol: TCP
 ---
