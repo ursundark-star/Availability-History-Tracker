@@ -123,7 +123,7 @@ metadata:
   name: backend-servicemonitor
   namespace: monitoring
   labels:
-    release: kube-prometheus-stack
+    release: prometheus
 spec:
   selector:
     matchLabels:
