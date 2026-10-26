@@ -27,7 +27,7 @@ spec:
             - name: API_URL
               value: "http://backend:8000"
             - name: PUBLIC_BACKEND_URL
-              value: "http://13.200.236.120:31501"
+              value: "http://13.203.65.110:31501"
 ---
 # NodePort service for external access to the frontend
 apiVersion: v1
